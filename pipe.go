@@ -289,7 +289,6 @@ func makeServerPipeHandle(path string, sd []byte, c *PipeConfig, first bool) (sy
 	if err := rtlDosPathNameToNtPathName(&path16[0], &ntPath, 0, 0).Err(); err != nil {
 		return 0, &os.PathError{Op: "open", Path: path, Err: err}
 	}
-	fmt.Println("DEBUG: ntPath: ", ntPath)
 	defer localFree(ntPath.Buffer)
 	oa.ObjectName = &ntPath
 
