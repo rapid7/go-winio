@@ -3,7 +3,6 @@
 package winio
 
 import (
-	"fmt"
 	"syscall"
 	"unsafe"
 
@@ -384,7 +383,6 @@ func setFileCompletionNotificationModes(h syscall.Handle, flags uint8) (err erro
 func ntCreateNamedPipeFile(pipe *syscall.Handle, access uint32, oa *objectAttributes, iosb *ioStatusBlock, share uint32, disposition uint32, options uint32, typ uint32, readMode uint32, completionMode uint32, maxInstances uint32, inboundQuota uint32, outputQuota uint32, timeout *int64) (status ntstatus) {
 	r0, _, _ := syscall.Syscall15(procNtCreateNamedPipeFile.Addr(), 14, uintptr(unsafe.Pointer(pipe)), uintptr(access), uintptr(unsafe.Pointer(oa)), uintptr(unsafe.Pointer(iosb)), uintptr(share), uintptr(disposition), uintptr(options), uintptr(typ), uintptr(readMode), uintptr(completionMode), uintptr(maxInstances), uintptr(inboundQuota), uintptr(outputQuota), uintptr(unsafe.Pointer(timeout)), 0)
 	status = ntstatus(r0)
-	fmt.Printf("DEBUG: ntCreateNamedPipeFile: retval: %d, status: %d\n", r0, status)
 	return
 }
 

@@ -339,7 +339,6 @@ func makeServerPipeHandle(path string, sd []byte, c *PipeConfig, first bool) (sy
 		iosb ioStatusBlock
 	)
 	oa.Attributes = OBJ_CASE_INSENSITIVE // use OBJ_CASE_INSENSITIVE sys.windows
-	fmt.Println("DEBUG: ObjectAttributes: ", oa)
 	err = ntCreateNamedPipeFile(&h, access, &oa, &iosb, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE, disposition, 0, typ, 0, 0, 0xffffffff, uint32(c.InputBufferSize), uint32(c.OutputBufferSize), &timeout).Err()
 	if err != nil {
 		return 0, &os.PathError{Op: "open", Path: path, Err: err}
