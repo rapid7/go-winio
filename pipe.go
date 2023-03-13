@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package winio
@@ -14,6 +15,8 @@ import (
 	"time"
 	"unsafe"
 )
+
+const OBJ_CASE_INSENSITIVE = 0x40
 
 //sys connectNamedPipe(pipe syscall.Handle, o *syscall.Overlapped) (err error) = ConnectNamedPipe
 //sys createNamedPipe(name string, flags uint32, pipeMode uint32, maxInstances uint32, outSize uint32, inSize uint32, defaultTimeout uint32, sa *syscall.SecurityAttributes) (handle syscall.Handle, err error)  [failretval==syscall.InvalidHandle] = CreateNamedPipeW
@@ -286,6 +289,7 @@ func makeServerPipeHandle(path string, sd []byte, c *PipeConfig, first bool) (sy
 	if err := rtlDosPathNameToNtPathName(&path16[0], &ntPath, 0, 0).Err(); err != nil {
 		return 0, &os.PathError{Op: "open", Path: path, Err: err}
 	}
+	fmt.Println("DEBUG: ntPath: ", ntPath)
 	defer localFree(ntPath.Buffer)
 	oa.ObjectName = &ntPath
 
@@ -335,6 +339,8 @@ func makeServerPipeHandle(path string, sd []byte, c *PipeConfig, first bool) (sy
 		h    syscall.Handle
 		iosb ioStatusBlock
 	)
+	oa.Attributes = OBJ_CASE_INSENSITIVE // use OBJ_CASE_INSENSITIVE sys.windows
+	fmt.Println("DEBUG: ObjectAttributes: ", oa)
 	err = ntCreateNamedPipeFile(&h, access, &oa, &iosb, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE, disposition, 0, typ, 0, 0, 0xffffffff, uint32(c.InputBufferSize), uint32(c.OutputBufferSize), &timeout).Err()
 	if err != nil {
 		return 0, &os.PathError{Op: "open", Path: path, Err: err}
