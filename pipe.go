@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 const OBJ_CASE_INSENSITIVE = 0x40
@@ -87,6 +89,9 @@ const (
 	cFILE_PIPE_REJECT_REMOTE_CLIENTS = 2
 
 	cSE_DACL_PRESENT = 4
+
+	LOCAL_SYSTEM_RID = "S-1-5-18"
+	ADMINS_RID       = "S-1-5-32-544"
 )
 
 var (
@@ -238,6 +243,22 @@ func DialPipeAccess(ctx context.Context, path string, access uint32) (net.Conn, 
 	h, err = tryDialPipe(ctx, &path, access)
 	if err != nil {
 		return nil, err
+	}
+
+	info, err := windows.GetSecurityInfo(windows.Handle(h), windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	if err != nil {
+		return nil, err
+	}
+
+	sid, _, err := info.Owner()
+	if err != nil {
+		return nil, err
+	}
+
+	// only connect to named pipe if the owner sid is BUILTIN\Administrators or Local System
+	if !(sid.String() == ADMINS_RID || sid.String() == LOCAL_SYSTEM_RID) {
+		return nil, errors.New(fmt.Sprintf("refused connection to unsafe named pipe created by user with sid"+
+			" %s\n", sid.String()))
 	}
 
 	var flags uint32
