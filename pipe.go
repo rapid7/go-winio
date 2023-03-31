@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package winio
@@ -13,7 +14,11 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
+
+const OBJ_CASE_INSENSITIVE = 0x40
 
 //sys connectNamedPipe(pipe syscall.Handle, o *syscall.Overlapped) (err error) = ConnectNamedPipe
 //sys createNamedPipe(name string, flags uint32, pipeMode uint32, maxInstances uint32, outSize uint32, inSize uint32, defaultTimeout uint32, sa *syscall.SecurityAttributes) (handle syscall.Handle, err error)  [failretval==syscall.InvalidHandle] = CreateNamedPipeW
@@ -84,6 +89,9 @@ const (
 	cFILE_PIPE_REJECT_REMOTE_CLIENTS = 2
 
 	cSE_DACL_PRESENT = 4
+
+	LOCAL_SYSTEM_RID = "S-1-5-18"
+	ADMINS_RID       = "S-1-5-32-544"
 )
 
 var (
@@ -237,6 +245,22 @@ func DialPipeAccess(ctx context.Context, path string, access uint32) (net.Conn, 
 		return nil, err
 	}
 
+	info, err := windows.GetSecurityInfo(windows.Handle(h), windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	if err != nil {
+		return nil, err
+	}
+
+	sid, _, err := info.Owner()
+	if err != nil {
+		return nil, err
+	}
+
+	// only connect to named pipe if the owner sid is BUILTIN\Administrators or Local System
+	if !(sid.String() == ADMINS_RID || sid.String() == LOCAL_SYSTEM_RID) {
+		return nil, errors.New(fmt.Sprintf("refused connection to unsafe named pipe created by user with sid"+
+			" %s\n", sid.String()))
+	}
+
 	var flags uint32
 	err = getNamedPipeInfo(h, &flags, nil, nil, nil)
 	if err != nil {
@@ -335,6 +359,7 @@ func makeServerPipeHandle(path string, sd []byte, c *PipeConfig, first bool) (sy
 		h    syscall.Handle
 		iosb ioStatusBlock
 	)
+	oa.Attributes = OBJ_CASE_INSENSITIVE // use OBJ_CASE_INSENSITIVE sys.windows
 	err = ntCreateNamedPipeFile(&h, access, &oa, &iosb, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE, disposition, 0, typ, 0, 0, 0xffffffff, uint32(c.InputBufferSize), uint32(c.OutputBufferSize), &timeout).Err()
 	if err != nil {
 		return 0, &os.PathError{Op: "open", Path: path, Err: err}
