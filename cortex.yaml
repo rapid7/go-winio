@@ -1,0 +1,15 @@
+---
+info:
+  title: Go Winio
+  description: Win32 IO-related utilities for Go
+  x-cortex-git:
+    github:
+      alias: r7org
+      repository: rapid7/go-winio
+  x-cortex-tag: go-winio
+  x-cortex-type: service
+  x-cortex-domain-parents:
+  - tag: endpoint
+openapi: 3.0.1
+servers:
+- url: "/"
