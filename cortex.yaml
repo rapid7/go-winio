@@ -11,8 +11,8 @@ info:
   x-cortex-domain-parents:
   - tag: endpoint
   x-cortex-groups:
-  - exposure:external-ship
-  - target:opensource
+  - exposure:opensource
+  - target:library
 openapi: 3.0.1
 servers:
 - url: "/"
